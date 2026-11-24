@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>¿A qué hora baja el internet? | Análisis Numérico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f7f9;--ink:#17212b;--mute:#5b6773;--line:#dde2e8;--card:#fff;--teal:#0f766e;--amber:#c77d02;--rose:#b4233c}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.6 "Source Sans 3",system-ui,sans-serif}
+h1,h2,.big strong{font-family:"Bricolage Grotesque","Source Sans 3",sans-serif;line-height:1.1;margin:0}
+h1{font-size:clamp(2.2rem,6vw,4rem);font-weight:800;max-width:16ch}
+h2{font-size:clamp(1.6rem,4vw,2.3rem);font-weight:800;margin-bottom:.6rem}
+section{max-width:900px;margin:0 auto;padding:4.5rem 1.2rem 1rem}
+.nav{position:sticky;top:0;z-index:5;display:flex;gap:1.2rem;overflow-x:auto;padding:.9rem 1.2rem;background:rgba(246,247,249,.95);border-bottom:1px solid var(--line)}
+.nav a{color:var(--ink);text-decoration:none;font-weight:600;font-size:.95rem;white-space:nowrap}
+.nav a:hover,.nav a:focus-visible{color:var(--teal);outline:none;text-decoration:underline}
+.hero{padding-top:3rem}
+.kicker{color:var(--teal);font-weight:600;margin:0 0 .8rem}
+.lead{max-width:60ch;color:var(--mute);margin:1rem 0 1.6rem}
+.panel,.big{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1.2rem}
+.live label{font-weight:600}
+input[type=range]{width:100%;accent-color:var(--teal);margin:.4rem 0}
+.readout{display:flex;flex-wrap:wrap;gap:.4rem 1.4rem;align-items:baseline}
+.readout strong{font-size:1.8rem}
+.readout span{font-size:1.8rem;color:var(--teal);font-weight:600}
+.readout em{font-style:normal;font-weight:600}
+.ok{color:var(--teal)}.bad{color:var(--rose)}
+svg{width:100%;height:auto;display:block}
+svg text{font:12px "Source Sans 3",sans-serif;fill:var(--mute)}
+.curve{fill:none;stroke:var(--teal);stroke-width:3}
+.grid{stroke:var(--line)}
+.thr{stroke:var(--amber);stroke-dasharray:6 5;stroke-width:2}
+.thrt{fill:var(--amber)!important;font-weight:600}
+.vl{stroke:var(--rose);stroke-width:2}
+.dot{fill:var(--ink)}.dotc{fill:var(--rose)}
+.avgs{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin:1rem 0}
+.avgs div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.8rem}
+.avgs b{display:block;font-size:1.7rem;font-family:"Bricolage Grotesque",sans-serif;color:var(--teal)}
+.avgs span{font-size:.9rem;color:var(--mute)}
+.scroll{overflow-x:auto;margin:1rem 0}
+table{width:100%;border-collapse:collapse;background:var(--card);font-variant-numeric:tabular-nums;font-size:.95rem}
+th,td{padding:.45rem .7rem;border-bottom:1px solid var(--line);text-align:right}
+th{background:#eaeef2;font-weight:600}
+th:first-child,td:first-child{text-align:left}
+tr.new td{background:#fdf2dc}
+tr.avg td{font-weight:600;background:#e6f2f0}
+.formula{background:var(--card);border-left:4px solid var(--teal);padding:.8rem 1rem;font-family:"Source Sans 3",serif;font-size:1.3rem;overflow-x:auto}
+.controls{display:flex;flex-wrap:wrap;gap:.6rem;margin:1rem 0}
+button{font:600 1rem "Source Sans 3",sans-serif;padding:.7rem 1.2rem;border-radius:8px;border:2px solid var(--teal);background:var(--teal);color:#fff;cursor:pointer}
+button.sec{background:transparent;color:var(--teal)}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.track{position:relative;height:16px;background:#e3e8ed;border-radius:8px;margin:1.6rem 0 .4rem}
+.fill{position:absolute;top:0;bottom:0;background:var(--teal);border-radius:8px;transition:left .35s,width .35s}
+.tick{position:absolute;top:20px;font-size:.85rem;color:var(--mute);transform:translateX(-50%)}
+.info{min-height:3.2em;margin-top:1.8rem}
+.big{display:flex;flex-direction:column;gap:.3rem;margin:1rem 0;border-left:6px solid var(--teal)}
+.big strong{font-size:clamp(2rem,6vw,3rem);color:var(--teal)}
+ul{padding-left:1.2rem}li{margin-bottom:.6rem}
+footer{text-align:center;color:var(--mute);padding:3rem 1rem;font-size:.9rem}
+@media(max-width:560px){body{font-size:16px}.avgs{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.fill{transition:none}}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a href="#inicio">Inicio</a><a href="#datos">Datos</a><a href="#modelo">Modelo</a>
+  <a href="#biseccion">Bisección</a><a href="#resultado">Resultado</a><a href="#conclusiones">Conclusiones</a>
+</nav>
+
+<main>
+<section id="inicio" class="hero">
+  <p class="kicker">Proyecto de Análisis Numérico, UDI</p>
+  <h1>¿A qué hora el internet de la casa baja de 40 Mbps?</h1>
+  <p class="lead">Medimos la velocidad de un router doméstico durante 14 días y usamos el método de bisección para encontrar la hora exacta. Mueve la hora y mira la velocidad que predice el modelo.</p>
+  <div class="panel">
+    <div class="live">
+      <label for="hora">Hora del día</label>
+      <input type="range" id="hora" min="8" max="20" step="0.01" value="12">
+      <div class="readout"><strong id="horaTxt">12:00 p. m.</strong><span id="velTxt">0 Mbps</span><em id="estado"></em></div>
+    </div>
+    <svg id="heroChart" viewBox="0 0 640 300" role="img" aria-label="Velocidad del internet según la hora"></svg>
+  </div>
+</section>
+
+<section id="datos">
+  <h2>Las mediciones</h2>
+  <p>Una prueba de velocidad de descarga, tres veces al día, durante 14 días: 42 mediciones en total (Mbps).</p>
+  <div class="avgs" id="avgs"></div>
+  <div class="scroll"><table id="tabla"></table></div>
+</section>
+
+<section id="modelo">
+  <h2>El modelo</h2>
+  <p>Con los promedios de cada horario ajustamos una curva que describe cómo cambia la velocidad durante el día, con <em>h</em> como la hora en formato de 24 horas:</p>
+  <p class="formula">v(h) = 55.2 − 25.5 · cos(π · (h − 20) / 12)</p>
+  <p>Queremos saber cuándo v(h) = 40. Eso es lo mismo que encontrar la raíz de:</p>
+  <p class="formula">f(h) = v(h) − 40</p>
+  <p>A las 2 p. m. f es positiva (la velocidad está por encima de 40) y a las 8 p. m. es negativa. Por lo tanto, entre esas dos horas hay una raíz.</p>
+</section>
+
+<section id="biseccion">
+  <h2>El método de bisección, paso a paso</h2>
+  <p>Partimos el intervalo [14, 20] por la mitad. Nos quedamos con la mitad donde f cambia de signo y repetimos hasta que el intervalo mida menos de 0.001.</p>
+  <div class="controls">
+    <button id="paso">Siguiente iteración</button>
+    <button id="todo" class="sec">Ejecutar todo</button>
+    <button id="reset" class="sec">Reiniciar</button>
+  </div>
+  <div class="track" aria-hidden="true"><div class="fill" id="fill"></div><span class="tick" style="left:0">14</span><span class="tick" style="left:100%">20</span></div>
+  <p class="info" id="info"></p>
+  <svg id="bisChart" viewBox="0 0 640 300" role="img" aria-label="Intervalo de la bisección sobre la curva"></svg>
+  <div class="scroll"><table id="bisTabla"></table></div>
+</section>
+
+<section id="resultado">
+  <h2>Resultado</h2>
+  <div class="big"><strong>h* ≈ 16.4393</strong><span>es decir, a las 4:26 p. m. la velocidad es de 40 Mbps. Salió en 13 iteraciones.</span></div>
+  <p>Para validar el modelo lo comparamos con las mediciones reales del día 14:</p>
+  <div class="scroll"><table id="valid"></table></div>
+</section>
+
+<section id="conclusiones">
+  <h2>Conclusiones</h2>
+  <ul>
+    <li>La velocidad baja a lo largo del día: cerca de 80 Mbps en la mañana, 54 en la tarde y 30 en la noche.</li>
+    <li>El internet queda por debajo de 40 Mbps a partir de las 4:26 p. m. Las descargas grandes y las videollamadas conviene hacerlas antes.</li>
+    <li>El modelo se acerca a lo medido, con una diferencia promedio de 1.23 Mbps.</li>
+    <li>La bisección es simple, siempre converge si hay cambio de signo y llegó a la precisión pedida en solo 13 pasos.</li>
+    <li>Limitación: no medimos entre las 2 y las 8 p. m., justo donde cae h*. Lo ideal es medir cada hora en ese rango para confirmar el resultado.</li>
+  </ul>
+</section>
+</main>
+
+<footer>Proyecto de Análisis Numérico, Universidad de Investigación y Desarrollo (UDI)</footer>
+<script>
+// Datos del proyecto (Mbps): [8 a. m., 2 p. m., 8 p. m.] por día
+const DATA = [
+  [80.84,52.15,28.65],[78.34,56.42,31.06],[82.35,52.52,29.53],[77.18,53.31,30.03],
+  [77.16,53.19,30.90],[80.27,53.32,30.54],[81.86,52.04,31.83],[81.19,54.04,27.93],
+  [82.74,54.02,27.56],[77.58,57.08,30.62],[81.84,56.38,30.22],[82.84,54.27,30.31],
+  [81.98,55.71,32.17],[80.46,56.23,27.27]
+];
+const HORAS = [8, 14, 20], TOL = 1e-3, MAX = 30;
+const V = h => 55.2 - 25.5 * Math.cos(Math.PI * (h - 20) / 12);
+const F = h => V(h) - 40;
+const $ = s => document.querySelector(s);
+const f2 = n => n.toFixed(2), f4 = n => n.toFixed(4);
+const avg = [0, 1, 2].map(i => DATA.reduce((s, d) => s + d[i], 0) / DATA.length);
+
+function fmtH(h) {
+  const t = Math.round(h * 60), H = Math.floor(t / 60) % 24, M = t % 60;
+  return `${H % 12 || 12}:${String(M).padStart(2, '0')} ${H >= 12 ? 'p. m.' : 'a. m.'}`;
+}
+
+// Gráfica SVG: curva v(h), umbral de 40 Mbps, líneas verticales y puntos
+const X = h => 50 + (h - 8) / 12 * 570, Y = v => 270 - (v - 20) / 70 * 250;
+function chart(svg, { dots = [], lines = [] } = {}) {
+  let s = '';
+  for (let v = 20; v <= 80; v += 20) s += `<line class="grid" x1="50" x2="620" y1="${Y(v)}" y2="${Y(v)}"/><text x="42" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+  for (let h = 8; h <= 20; h += 2) s += `<text x="${X(h)}" y="292" text-anchor="middle">${h}:00</text>`;
+  s += `<line class="thr" x1="50" x2="620" y1="${Y(40)}" y2="${Y(40)}"/><text class="thrt" x="618" y="${Y(40) - 6}" text-anchor="end">40 Mbps</text>`;
+  let d = '';
+  for (let h = 8; h <= 20.001; h += 0.25) d += (d ? 'L' : 'M') + X(h).toFixed(1) + ' ' + Y(V(h)).toFixed(1);
+  s += `<path class="curve" d="${d}"/>`;
+  lines.forEach(h => s += `<line class="vl" x1="${X(h)}" x2="${X(h)}" y1="20" y2="270"/>`);
+  dots.forEach(p => s += `<circle class="${p.c || 'dot'}" cx="${X(p.h)}" cy="${Y(p.v)}" r="${p.r || 6}"/>`);
+  svg.innerHTML = s;
+}
+
+// Hero: deslizador de hora
+function hero() {
+  const h = +$('#hora').value, v = V(h);
+  $('#horaTxt').textContent = fmtH(h);
+  $('#velTxt').textContent = f2(v) + ' Mbps';
+  const e = $('#estado');
+  e.textContent = v >= 40 ? 'Por encima de 40 Mbps' : 'Por debajo de 40 Mbps';
+  e.className = v >= 40 ? 'ok' : 'bad';
+  chart($('#heroChart'), { dots: [...HORAS.map((x, i) => ({ h: x, v: avg[i], r: 4 })), { h, v, c: 'dotc', r: 8 }] });
+}
+$('#hora').addEventListener('input', hero);
+
+// Tabla de datos
+function datos() {
+  const nom = ['Día', '8:00 a. m.', '2:00 p. m.', '8:00 p. m.'];
+  let t = `<tr>${nom.map(n => `<th>${n}</th>`).join('')}</tr>`;
+  DATA.forEach((d, i) => t += `<tr><td>${i + 1}</td>${d.map(x => `<td>${f2(x)}</td>`).join('')}</tr>`);
+  t += `<tr class="avg"><td>Promedio</td>${avg.map(x => `<td>${f2(x)}</td>`).join('')}</tr>`;
+  $('#tabla').innerHTML = t;
+  $('#avgs').innerHTML = avg.map((x, i) => `<div><b>${f2(x)} Mbps</b><span>Promedio a las ${fmtH(HORAS[i])}</span></div>`).join('');
+}
+
+// Bisección interactiva
+let a, b, rows, done;
+function reset() { a = 14; b = 20; rows = []; done = false; render(); }
+function step() {
+  if (done) return;
+  const c = (a + b) / 2, fc = F(c);
+  rows.push({ n: rows.length + 1, a, b, c, fc });
+  if (F(a) * fc < 0) b = c; else a = c;
+  if (b - a < TOL || rows.length >= MAX) done = true;
+  render();
+}
+function render() {
+  $('#fill').style.left = (a - 14) / 6 * 100 + '%';
+  $('#fill').style.width = (b - a) / 6 * 100 + '%';
+  const last = rows[rows.length - 1], hs = (a + b) / 2;
+  chart($('#bisChart'), { lines: [a, b], dots: last ? [{ h: last.c, v: V(last.c), c: 'dotc', r: 7 }] : [] });
+  let t = '<tr><th>n</th><th>a</th><th>b</th><th>c</th><th>f(c)</th></tr>';
+  rows.forEach((r, i) => t += `<tr class="${i === rows.length - 1 ? 'new' : ''}"><td>${r.n}</td><td>${f4(r.a)}</td><td>${f4(r.b)}</td><td>${f4(r.c)}</td><td>${f4(r.fc)}</td></tr>`);
+  $('#bisTabla').innerHTML = t;
+  $('#info').innerHTML = !last
+    ? 'Intervalo inicial: [14, 20]. Pulsa "Siguiente iteración" para empezar.'
+    : done
+      ? `<strong>Terminó en ${rows.length} iteraciones.</strong> Intervalo final [${f4(a)}, ${f4(b)}], ancho ${f4(b - a)}. Hora estimada h* = ${f4(hs)} (${fmtH(hs)}), con v(h*) = ${f2(V(hs))} Mbps.`
+      : `Iteración ${last.n}: c = ${f4(last.c)} y f(c) = ${f4(last.fc)}. ${last.fc > 0 ? 'f(c) es positiva, la raíz está a la derecha.' : 'f(c) es negativa, la raíz está a la izquierda.'} Nuevo intervalo [${f4(a)}, ${f4(b)}].`;
+  $('#paso').disabled = $('#todo').disabled = done;
+}
+$('#paso').onclick = step;
+$('#todo').onclick = () => { while (!done) step(); };
+$('#reset').onclick = reset;
+
+// Validación con el día 14
+function validar() {
+  const d = DATA[DATA.length - 1];
+  let t = '<tr><th>Hora</th><th>Real</th><th>Modelo</th><th>Diferencia</th></tr>', sum = 0;
+  HORAS.forEach((h, i) => { const df = Math.abs(d[i] - V(h)); sum += df; t += `<tr><td>${fmtH(h)}</td><td>${f2(d[i])}</td><td>${f2(V(h))}</td><td>${f2(df)}</td></tr>`; });
+  t += `<tr class="avg"><td>Promedio</td><td></td><td></td><td>${f2(sum / 3)}</td></tr>`;
+  $('#valid').innerHTML = t;
+}
+
+datos(); validar(); hero(); reset();
+</script>
+</body>
+</html>
